@@ -4379,16 +4379,6 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
                     });
                     sendPopupLayout.addView(sendWithoutSoundButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
 
-                    ActionBarMenuSubItem pgpButton = new ActionBarMenuSubItem(getContext(), true, true, resourcesProvider);
-                    pgpButton.setTextAndIcon(LocaleController.getString(R.string.PgpSettings), R.drawable.msg_mini_lock2);
-                    pgpButton.setMinimumWidth(dp(196));
-                    pgpButton.setOnClickListener(v -> {
-                        if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
-                            sendPopupWindow.dismiss();
-                        }
-                        showPgpDialog();
-                    });
-                    sendPopupLayout.addView(pgpButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
                 }
                 sendPopupLayout.setupRadialSelectors(getThemedColor(Theme.key_dialogButtonSelector));
 
@@ -4618,7 +4608,6 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
                     AndroidUtilities.runOnUIThread(dismissSendPreview, 500);
                 }
             });
-            options.add(R.drawable.msg_mini_lock2, getString(R.string.PgpSettings), this::showPgpDialog);
         }
         options.setupSelectors();
         if (sendWhenOnlineButton != null) {
@@ -6738,33 +6727,6 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
         return false;
     }
 
-    private void showPgpDialog() {
-        if (parentActivity == null) {
-            return;
-        }
-        AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity, resourcesProvider);
-        builder.setTitle(LocaleController.getString("PgpSettings", R.string.PgpSettings));
-        LinearLayout layout = new LinearLayout(parentActivity);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        EditText publicKey = new EditText(parentActivity);
-        publicKey.setHint(LocaleController.getString("PgpPublicKey", R.string.PgpPublicKey));
-        publicKey.setText(PgpHelper.getPublicKey());
-        EditText privateKey = new EditText(parentActivity);
-        privateKey.setHint(LocaleController.getString("PgpPrivateKey", R.string.PgpPrivateKey));
-        privateKey.setText(PgpHelper.getPrivateKey());
-        layout.addView(publicKey, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 8f, 16f, 8f));
-        layout.addView(privateKey, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 8f, 16f, 8f));
-        builder.setView(layout);
-        builder.setPositiveButton(LocaleController.getString("Save", R.string.Save), (dialog, which) -> {
-            PgpHelper.saveKeys(publicKey.getText().toString(), privateKey.getText().toString());
-        });
-        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
-        if (parentFragment != null) {
-            parentFragment.showDialog(builder.create());
-        } else {
-            builder.show();
-        }
-    }
 
     public static boolean checkPremiumAnimatedEmoji(int currentAccount, long dialogId, BaseFragment parentFragment, FrameLayout container, CharSequence message) {
         if (message == null || parentFragment == null) {
@@ -7118,8 +7080,8 @@ public class ChatActivityEnterView extends BlurredFrameLayout implements Notific
                     replyToTopMsg = replyingTopMessage;
                 }
                 String sendText = message[0].toString();
-                if (PgpHelper.hasKeys()) {
-                    sendText = PgpHelper.encrypt(sendText);
+                if (PgpHelper.hasKeys(dialog_id)) {
+                    sendText = PgpHelper.encrypt(dialog_id, sendText);
                 }
                 SendMessagesHelper.SendMessageParams params = SendMessagesHelper.SendMessageParams.of(sendText, dialog_id, replyingMessageObject, replyToTopMsg, messageWebPage, messageWebPageSearch, entities, null, null, notify, scheduleDate, sendAnimationData, updateStickersOrder);
                 params.quick_reply_shortcut = parentFragment != null ? parentFragment.quickReplyShortcut : null;

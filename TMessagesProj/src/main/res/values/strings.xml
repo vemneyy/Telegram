@@ -9091,6 +9091,9 @@
     <string name="GroupCallCreatedLinkRevoke">Revoke link</string>
     <string name="VoipGroupInCallBranding">Incoming Group Call</string>
     <string name="ConferenceCallOutgoing">Outgoing Group Call</string>
+    <string name="PgpSettings">PGP Settings</string>
+    <string name="PgpPublicKey">Public PGP Key</string>
+    <string name="PgpPrivateKey">Private PGP Key</string>
     <string name="ConferenceCallIncoming">Incoming Group Call</string>
     <string name="ConferenceCallMissed">Missed Group Call</string>
     <string name="ConferenceCallOther_one">%d person</string>

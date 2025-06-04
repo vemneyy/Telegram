@@ -25,7 +25,7 @@ import java.security.Security;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
-import java.util.Random;
+import java.security.SecureRandom;
 
 public class PgpHelper {
     private static final String PREFS = "pgp_keys";
@@ -80,7 +80,7 @@ public class PgpHelper {
             PGPEncryptedDataGenerator encGen = new PGPEncryptedDataGenerator(
                     new JcePGPDataEncryptorBuilder(PGPEncryptedData.AES_256)
                             .setWithIntegrityPacket(true)
-                            .setSecureRandom(new Random())
+                            .setSecureRandom(new SecureRandom())
                             .setProvider("BC"));
             encGen.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(key).setProvider("BC"));
             OutputStream cOut = encGen.open(armoredOut, new byte[4096]);

@@ -295,6 +295,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
@@ -552,8 +554,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private final static int copy_link_profile = 42;
     private final static int set_username = 43;
     private final static int bot_privacy = 44;
+    private final static int pgp_keys = 45;
+
+    private final static int REQUEST_PUBLIC_KEY = 700;
+    private final static int REQUEST_PRIVATE_KEY = 701;
 
     private Rect rect = new Rect();
+
+    private EditText pgpPublicField;
+    private EditText pgpPrivateField;
 
     private TextCell setAvatarCell;
 
@@ -2530,6 +2539,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     });
                     builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
                     showDialog(builder.create());
+                } else if (id == pgp_keys) {
+                    showPgpDialog();
                 } else if (id == bot_privacy) {
                     BotWebViewAttachedSheet.openPrivacy(currentAccount, userId);
                 } else if (id == gallery_menu_save) {
@@ -10358,7 +10369,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         otherItem.addSubItem(gift_premium, R.drawable.msg_gift_premium, LocaleController.getString(R.string.ProfileSendAGift));
                     }
                     otherItem.addSubItem(start_secret_chat, R.drawable.msg_secret, LocaleController.getString(R.string.StartEncryptedChat));
-                    otherItem.setSubItemShown(start_secret_chat, DialogObject.isEmpty(getMessagesController().isUserContactBlocked(userId)));
+                    otherItem.addSubItem(pgp_keys, R.drawable.msg_mini_lock2, LocaleController.getString(R.string.PgpSettings));
+                    otherItem.setSubItemShown(start_secret_chat, DialogObject.isEmpty(getMessagesController().isUserContactBlocked(userId))); 
                 }
                 if (!isBot && getContactsController().contactsDict.get(userId) != null) {
                     otherItem.addSubItem(add_shortcut, R.drawable.msg_home, LocaleController.getString(R.string.AddShortcut));
@@ -11039,10 +11051,82 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    private void showPgpDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), resourcesProvider);
+        builder.setTitle(LocaleController.getString("PgpSettings", R.string.PgpSettings));
+        LinearLayout layout = new LinearLayout(getParentActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        pgpPublicField = new EditText(getParentActivity());
+        pgpPublicField.setHint(LocaleController.getString("PgpPublicKey", R.string.PgpPublicKey));
+        pgpPublicField.setText(PgpHelper.getPublicKey(getDialogId()));
+        pgpPrivateField = new EditText(getParentActivity());
+        pgpPrivateField.setHint(LocaleController.getString("PgpPrivateKey", R.string.PgpPrivateKey));
+        pgpPrivateField.setText(PgpHelper.getPrivateKey());
+        Button importPub = new Button(getParentActivity());
+        importPub.setText(LocaleController.getString("Import", R.string.Import));
+        importPub.setOnClickListener(v -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*");
+                startActivityForResult(intent, REQUEST_PUBLIC_KEY);
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        });
+        Button importPriv = new Button(getParentActivity());
+        importPriv.setText(LocaleController.getString("Import", R.string.Import));
+        importPriv.setOnClickListener(v -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*");
+                startActivityForResult(intent, REQUEST_PRIVATE_KEY);
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        });
+        layout.addView(pgpPublicField, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 8f, 16f, 8f));
+        layout.addView(importPub, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 0f, 16f, 8f));
+        layout.addView(pgpPrivateField, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 8f, 16f, 8f));
+        layout.addView(importPriv, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 0f, 16f, 8f));
+        builder.setView(layout);
+        builder.setPositiveButton(LocaleController.getString("Save", R.string.Save), (dialog, which) -> {
+            PgpHelper.saveKeys(getDialogId(), pgpPublicField.getText().toString(), pgpPrivateField.getText().toString());
+        });
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        showDialog(builder.create());
+    }
+
     @Override
     public void onActivityResultFragment(int requestCode, int resultCode, Intent data) {
         if (imageUpdater != null) {
             imageUpdater.onActivityResult(requestCode, resultCode, data);
+        }
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            if ((requestCode == REQUEST_PUBLIC_KEY && pgpPublicField != null) || (requestCode == REQUEST_PRIVATE_KEY && pgpPrivateField != null)) {
+                try {
+                    InputStream is = getParentActivity().getContentResolver().openInputStream(data.getData());
+                    if (is != null) {
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        byte[] buf = new byte[1024];
+                        int n;
+                        while ((n = is.read(buf)) > 0) {
+                            out.write(buf, 0, n);
+                        }
+                        String text = out.toString("UTF-8");
+                        if (requestCode == REQUEST_PUBLIC_KEY) {
+                            pgpPublicField.setText(text);
+                        } else {
+                            pgpPrivateField.setText(text);
+                        }
+                        is.close();
+                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+            }
         }
     }
 
